@@ -1,0 +1,12 @@
+{
+    "google": {
+        "search_url": "https://www.google.com/search?q={topic}&tbm=isch{option}",
+        "click_xpath": "//div[@jsname='dTDiAc']",
+        "img_xpath": "//div[@jsname='figiqf']//img"
+    },
+    "naver": {
+        "search_url": "https://search.naver.com/search.naver?&where=image&query={topic}&{option}",
+        "click_xpath": "//div[@class='tile_item _fe_image_tab_content_tile']//img[@class='_fe_image_tab_content_thumbnail_image']",
+        "img_xpath": "//div[@class='image']//img"
+    }
+}
