@@ -1,7 +1,7 @@
 import os
-import chromedriver_autoinstaller
-import selenium
+import json
 import time
+import chromedriver_autoinstaller
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
@@ -9,17 +9,16 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
-
+from selenium.common.exceptions import StaleElementReferenceException
 
 # 드라이버
-class collect_links() :
+class CollectLinks :
 
     # 생성자
     def __init__(self, no_gui = False) :
 
         # Chrome 웹드라이버 설정
-        chrome_options = webdriver.ChromeOptions()
+        chrome_options = Options()
         chrome_options.add_argument('--no-sandbox')  # To maintain user cookies
         chrome_options.add_argument('--disable-dev-shm-usage')
 
@@ -33,7 +32,7 @@ class collect_links() :
         browser_version = self.driver.capabilities['browserVersion']
         chromedriver_version = self.driver.capabilities['chrome']['chromedriverVersion'].split(' ')[0]
 
-        print('=' * 50)
+        print('=' * 100)
         print('정상 작동')
         print(f'현재 Chrome 브라우저 버전: {browser_version}')
         print(f'현재 ChromeDriver 버전: {chromedriver_version}')
@@ -41,8 +40,48 @@ class collect_links() :
         # 버전 출력
         if browser_version.split('.')[0] != chromedriver_version.split('.')[0] :
             print('버전이 다릅니다.')
+        
+        # json 파일 자동 생성
+        self.browser_data = self.make_json_browser()
 
-        print('=' * 50)
+        print('=' * 100)
+
+    # jason 파일 생성
+    @staticmethod
+    def make_json_browser():
+        save_path = os.getcwd()
+
+        data = {
+            "google": {
+                "search_url": "https://www.google.com/search?q={topic}&tbm=isch{option}",
+                "click_xpath": "//div[@jsname='dTDiAc']",
+                "img_xpath": "//div[@jsname='figiqf']//img"
+            },
+            "naver": {
+                "search_url": "https://search.naver.com/search.naver?&where=image&query={topic}&{option}",
+                "click_xpath": "//div[@class='tile_item _fe_image_tab_content_tile']//img[@class='_fe_image_tab_content_thumbnail_image']",
+                "img_xpath": "//div[@class='image']//img"
+            }
+        }
+
+        if not os.path.exists(os.path.join(save_path, 'browser.json')):
+
+            with open('browser.json', 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=4)
+                print(f'데이터가 {save_path} 경로에 json 형식으로 올바르게 저장되되었습니다.')
+
+        else:
+            print('현재 경로에 파일 존재')
+
+        try:
+            with open('browser.json', 'r', encoding='utf-8') as f:
+                browser_data = json.load(f)
+
+        except Exception as e:
+            print(f'{save_path} 경로에 파일이 올바르지 않습니다.')
+            print(f'{e}')
+
+        return browser_data
 
     # img click area
 
@@ -90,17 +129,30 @@ class collect_links() :
                 break
 
     # img src 링크
-    def google_img_links(self, topic, option = '', limit = 30) :
-        self.driver.get(f'https://www.google.com/search?q={topic}&tbm=isch{option}')
+    def img_links(self, browser, topic, option='', limit=20):
 
-        self.click_img_area('//div[@jsname="dTDiAc"]')
+        if 'google' in self.browser_data and browser == 'google':
+            google_data = self.browser_data['google']
+            self.driver.get(google_data['search_url'].format(topic = topic, option = option))
+
+            self.click_img_area(google_data['click_xpath'])
+            img_xpath = google_data['img_xpath']
+
+        if 'naver' in self.browser_data and browser == 'naver':
+            naver_data = self.browser_data['naver']
+            self.driver.get(naver_data['search_url'].format(topic = topic, option = option))
+
+            time.sleep(2)
+            self.click_img_area(naver_data['click_xpath'])
+            img_xpath = naver_data['img_xpath']
+
         next_button = self.driver.find_element(By.TAG_NAME, 'body')
 
         links = []
-        cnt = 1
+        cnt = 0
+        limit = 100 if limit == 0 else limit
 
         while len(links) < limit:
-            img_xpath = '//div[@jsname="figiqf"]//img'
             t1 = time.time()
 
             while True:
@@ -110,7 +162,7 @@ class collect_links() :
                 if len(imgs) > 0:
                     break
 
-                if t2 - t1 > 5:
+                if t1 - t2 > 5:
                     print(f'이미지 찾기 실패 {imgs}')
                     break
 
@@ -118,24 +170,33 @@ class collect_links() :
                 src = imgs[0].get_attribute('src')
 
                 if src is not None and src not in links:
-                    print(f'{cnt}. {src.strip()}')
                     links.append(src)
+                    print(f'{cnt + 1}, {src}')
+
                     cnt += 1
 
+            except StaleElementReferenceException:
+                print(f'{StaleElementReferenceException} 발생')
+                pass
+
             except Exception as e:
-                print(f'구글 크롤링 에러발생 {e}')
+                print(f'네이버 크롤링 에러 발생 {e}')
 
             next_button.send_keys(Keys.RIGHT)
-        print('=' * 25 + '구글 크롤링 완료' + '=' * 25)
-        print(f'topic : {topic} 이미지 수 : {limit}개 구글 크롤링 완료')
-        print('=' * 23 + '=' * len('구글 크롤링 완료') * 2 + '=' * 23)
+
+        print('=' * 100)
+        print(f'{browser.capitalize()} 크롤링 완료')
+        print(f'Browser : {browser.capitalize()}, Topic : {topic}, 이미지 수 : {cnt}개')
+        print('=' * 100)
+
+        self.driver.close()
 
         return links
 
+if __name__ == '__main__':
+    topic = 'hand'
 
-topic = 'hand'
+    collect = CollectLinks()
+    collect.img_links(browser = 'naver', topic = topic, limit = 0)
 
-collect = collect_links()
-collect.google_img_links(topic)
-
-collect.driver.quit()
+    collect.driver.quit()
