@@ -129,22 +129,18 @@ class CollectLinks :
                 break
 
     # img src 링크
-    def img_links(self, browser, topic, option='', limit=20):
+    def img_links(self, browser, topic, option='', limit=20) :
 
-        if 'google' in self.browser_data and browser == 'google':
-            google_data = self.browser_data['google']
-            self.driver.get(google_data['search_url'].format(topic = topic, option = option))
+        if 'google' in self.browser_data and browser == 'google' :
+            search_data = self.browser_data['google']
 
-            self.click_img_area(google_data['click_xpath'])
-            img_xpath = google_data['img_xpath']
+        elif 'naver' in self.browser_data and browser == 'naver' :
+            search_data = self.browser_data['naver']
 
-        if 'naver' in self.browser_data and browser == 'naver':
-            naver_data = self.browser_data['naver']
-            self.driver.get(naver_data['search_url'].format(topic = topic, option = option))
-
-            time.sleep(2)
-            self.click_img_area(naver_data['click_xpath'])
-            img_xpath = naver_data['img_xpath']
+        self.driver.get(search_data['search_url'].format(topic=topic, option=option))
+        time.sleep(2)
+        self.click_img_area(search_data['click_xpath'])
+        img_xpath = search_data['img_xpath']
 
         next_button = self.driver.find_element(By.TAG_NAME, 'body')
 
@@ -152,35 +148,50 @@ class CollectLinks :
         cnt = 0
         limit = 100 if limit == 0 else limit
 
-        while len(links) < limit:
+        while len(links) < limit :
             t1 = time.time()
 
             while True:
                 imgs = self.driver.find_elements(By.XPATH, img_xpath)
                 t2 = time.time()
 
-                if len(imgs) > 0:
+                if len(imgs) > 0 or (t1 - t2 > 5) :
                     break
 
-                if t1 - t2 > 5:
-                    print(f'이미지 찾기 실패 {imgs}')
+            if not imgs :
+                print(f'이미지 찾기 실패 {imgs}')
+                continue
+
+            retry_cnt = 3
+
+            while retry_cnt > 0 :
+
+                try:
+                    src = imgs[0].get_attribute('src')
+
+                    if src is not None and src not in links :
+                        links.append(src)
+                        cnt += 1
+
+                        print(f'{cnt}, {src}')
+
                     break
 
-            try:
-                src = imgs[0].get_attribute('src')
+                except StaleElementReferenceException :
+                    print('-' * 100)
+                    print(f'{cnt}번째 {src}에서 {StaleElementReferenceException} 발생')
+                    print('-' * 100)
 
-                if src is not None and src not in links:
-                    links.append(src)
-                    print(f'{cnt + 1}, {src}')
+                    imgs = self.driver.find_elements(By.XPATH, img_xpath)
+                    retry_cnt -= 1
 
-                    cnt += 1
+                except Exception as e :
+                    print(f'네이버 크롤링 에러 발생 {e}')
 
-            except StaleElementReferenceException:
-                print(f'{StaleElementReferenceException} 발생')
-                pass
+                    break
 
-            except Exception as e:
-                print(f'네이버 크롤링 에러 발생 {e}')
+            if retry_cnt == 0 :
+                print(f'{cnt}번째 이미지 로드 실패 다음 이미지로 넘어감')
 
             next_button.send_keys(Keys.RIGHT)
 
@@ -193,10 +204,10 @@ class CollectLinks :
 
         return links
 
-if __name__ == '__main__':
+if __name__ == '__main__' :
     topic = 'hand'
 
     collect = CollectLinks()
-    collect.img_links(browser = 'naver', topic = topic, limit = 0)
+    collect.img_links(browser = 'naver', topic = topic, limit = 100)
 
     collect.driver.quit()
