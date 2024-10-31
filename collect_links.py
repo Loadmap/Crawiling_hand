@@ -64,22 +64,52 @@ class CollectLinks :
             }
         }
 
-        if not os.path.exists(os.path.join(save_path, 'browser.json')):
+        if not os.path.exists(os.path.join(save_path, 'browser.json')) :
 
-            with open('browser.json', 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=4)
+            with open('browser.json', 'w', encoding = 'utf-8') as f :
+                json.dump(data, f, indent = 4)
                 print(f'데이터가 {save_path} 경로에 json 형식으로 올바르게 저장되되었습니다.')
 
         else:
             print('현재 경로에 파일 존재')
 
+    @staticmethod
+    def read_json_browser(browser) :
+        file_path = os.getcwd()
+
         try:
-            with open('browser.json', 'r', encoding='utf-8') as f:
+            with open('browser.json', 'r', encoding = 'utf-8') as f :
                 browser_data = json.load(f)
 
-        except Exception as e:
-            print(f'{save_path} 경로에 파일이 올바르지 않습니다.')
-            print(f'{e}')
+                if browser not in browser_data :
+                    raise KeyError(f'{browser} 브라우저 데이터가 존재하지 않음')
+
+                check_browser = browser_data[browser]
+
+                for data in ['search_url', 'click_xpath', 'img_xpath'] :
+
+                    if data not in check_browser :
+                        raise KeyError(f'{browser} 브라우저에 대한 {data} 데이터가 존재하지 않음')
+
+        except FileNotFoundError :
+            print(f'올바른 경로에 browser.json 파일이 존재하지 않습니다. 파일 경로를 확인하세요.')
+
+            return
+
+        except json.JSONDecodeError :
+            print('파일 내용이 올바른 JSON 형식이 아닙니다. 파일을 확인하세요.')
+
+            return
+
+        except KeyError as e :
+            print(f'브라우저 에러 : {e}')
+
+            return
+
+        except Exception as e :
+            print(f'예상 외의 에러 {e} 발생')
+
+            return
 
         return browser_data
 
@@ -130,13 +160,21 @@ class CollectLinks :
 
     # img src 링크
     def img_links(self, browser, topic, option='', limit=20) :
+        browser_data = self.read_json_browser(browser)
 
-        if 'google' in self.browser_data and browser == 'google' :
-            search_data = self.browser_data['google']
+        try:
+            search_data = browser_data[browser]
 
-        elif 'naver' in self.browser_data and browser == 'naver' :
-            search_data = self.browser_data['naver']
+        except (KeyError, TypeError):
 
+            return
+
+        except Exception as e:
+            print(f'예상 외의 에러 {e} 발생')
+
+            return
+
+        search_data = browser_data[browser]
         self.driver.get(search_data['search_url'].format(topic=topic, option=option))
         time.sleep(2)
         self.click_img_area(search_data['click_xpath'])
@@ -208,6 +246,6 @@ if __name__ == '__main__' :
     topic = 'hand'
 
     collect = CollectLinks()
-    collect.img_links(browser = 'naver', topic = topic, limit = 100)
+    collect.img_links(browser = 'naver', topic = topic, limit = 10)
 
     collect.driver.quit()
