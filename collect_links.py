@@ -74,22 +74,28 @@ class CollectLinks :
             print('현재 경로에 파일 존재')
 
     @staticmethod
-    def read_json_browser(browser) :
-        file_path = os.getcwd()
+    def read_json_browser():
+
+        with open('browser.json', 'r', encoding='utf-8') as f:
+            browser_data = json.load(f)
+
+        return browser_data
+
+    @staticmethod
+    def check_json_browser(browser) :
 
         try:
-            with open('browser.json', 'r', encoding = 'utf-8') as f :
-                browser_data = json.load(f)
+            browser_data = CollectLinks.read_json_browser()
 
-                if browser not in browser_data :
-                    raise KeyError(f'{browser} 브라우저 데이터가 존재하지 않음')
+            if browser not in browser_data :
+                raise KeyError(f'{browser} 브라우저 데이터가 존재하지 않음')
 
-                check_browser = browser_data[browser]
+            check_browser = browser_data[browser]
 
-                for data in ['search_url', 'click_xpath', 'img_xpath'] :
+            for data in ['search_url', 'click_xpath', 'img_xpath'] :
 
-                    if data not in check_browser :
-                        raise KeyError(f'{browser} 브라우저에 대한 {data} 데이터가 존재하지 않음')
+                if data not in check_browser :
+                    raise KeyError(f'{browser} 브라우저에 대한 {data} 데이터가 존재하지 않음')
 
         except FileNotFoundError :
             print(f'올바른 경로에 browser.json 파일이 존재하지 않습니다. 파일 경로를 확인하세요.')
@@ -111,7 +117,7 @@ class CollectLinks :
 
             return
 
-        return browser_data
+        return browser_data[browser]
 
     # img click area
 
@@ -160,10 +166,10 @@ class CollectLinks :
 
     # img src 링크
     def img_links(self, browser, topic, option='', limit=20) :
-        browser_data = self.read_json_browser(browser)
+        browser_data = self.check_json_browser(browser)
 
         try:
-            search_data = browser_data[browser]
+            search_data = browser_data
 
         except (KeyError, TypeError):
 
@@ -174,8 +180,7 @@ class CollectLinks :
 
             return
 
-        search_data = browser_data[browser]
-        self.driver.get(search_data['search_url'].format(topic=topic, option=option))
+        self.driver.get(search_data['search_url'].format(topic = topic, option = option))
         time.sleep(2)
         self.click_img_area(search_data['click_xpath'])
         img_xpath = search_data['img_xpath']
@@ -246,6 +251,8 @@ if __name__ == '__main__' :
     topic = 'hand'
 
     collect = CollectLinks()
+    # print(collect.read_json_browser())
+    print(collect.check_json_browser('naver'))
     collect.img_links(browser = 'naver', topic = topic, limit = 10)
 
     collect.driver.quit()
