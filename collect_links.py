@@ -13,6 +13,7 @@ from selenium.common.exceptions import StaleElementReferenceException
 
 # 드라이버
 class CollectLinks :
+    initialized = False
 
     # 생성자
     def __init__(self, no_gui = False) :
@@ -28,23 +29,27 @@ class CollectLinks :
         chromedriver_path = Service(chromedriver_autoinstaller.install())
         self.driver = webdriver.Chrome(service = chromedriver_path, options = chrome_options)
 
-        # Chrome 브라우저의 버전 정보 가져오기
-        browser_version = self.driver.capabilities['browserVersion']
-        chromedriver_version = self.driver.capabilities['chrome']['chromedriverVersion'].split(' ')[0]
+        if not CollectLinks.initialized :
 
-        print('=' * 100)
-        print('정상 작동')
-        print(f'현재 Chrome 브라우저 버전: {browser_version}')
-        print(f'현재 ChromeDriver 버전: {chromedriver_version}')
+            # Chrome 브라우저의 버전 정보 가져오기
+            browser_version = self.driver.capabilities['browserVersion']
+            chromedriver_version = self.driver.capabilities['chrome']['chromedriverVersion'].split(' ')[0]
 
-        # 버전 출력
-        if browser_version.split('.')[0] != chromedriver_version.split('.')[0] :
-            print('버전이 다릅니다.')
-        
-        # json 파일 자동 생성
-        self.browser_data = self.make_json_browser()
+            print('=' * 100)
+            print('정상 작동')
+            print(f'현재 Chrome 브라우저 버전: {browser_version}')
+            print(f'현재 ChromeDriver 버전: {chromedriver_version}')
 
-        print('=' * 100)
+            # 버전 출력
+            if browser_version.split('.')[0] != chromedriver_version.split('.')[0] :
+                print('버전이 다릅니다.')
+
+            # json 파일 자동 생성
+            self.browser_data = self.make_json_browser()
+
+            print('=' * 100)
+
+            CollectLinks.initialized = True
 
     # jason 파일 생성
     @staticmethod
@@ -78,16 +83,17 @@ class CollectLinks :
 
         with open('browser.json', 'r', encoding='utf-8') as f:
             browser_data = json.load(f)
+            keys = list(browser_data.keys())
 
-        return browser_data
+        return browser_data, keys
 
     @staticmethod
     def check_json_browser(browser) :
 
         try:
-            browser_data = CollectLinks.read_json_browser()
+            browser_data, keys = CollectLinks.read_json_browser()
 
-            if browser not in browser_data :
+            if browser not in keys :
                 raise KeyError(f'{browser} 브라우저 데이터가 존재하지 않음')
 
             check_browser = browser_data[browser]
@@ -166,19 +172,7 @@ class CollectLinks :
 
     # img src 링크
     def img_links(self, browser, topic, option='', limit=20) :
-        browser_data = self.check_json_browser(browser)
-
-        try:
-            search_data = browser_data
-
-        except (KeyError, TypeError):
-
-            return
-
-        except Exception as e:
-            print(f'예상 외의 에러 {e} 발생')
-
-            return
+        search_data = self.check_json_browser(browser)
 
         self.driver.get(search_data['search_url'].format(topic = topic, option = option))
         time.sleep(2)
@@ -252,7 +246,7 @@ if __name__ == '__main__' :
 
     collect = CollectLinks()
     # print(collect.read_json_browser())
-    print(collect.check_json_browser('naver'))
+    # print(collect.check_json_browser('naver'))
     collect.img_links(browser = 'naver', topic = topic, limit = 10)
 
     collect.driver.quit()
