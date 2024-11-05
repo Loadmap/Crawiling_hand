@@ -36,7 +36,6 @@ class CollectLinks :
             chromedriver_version = self.driver.capabilities['chrome']['chromedriverVersion'].split(' ')[0]
 
             print('=' * 100)
-            print('정상 작동')
             print(f'현재 Chrome 브라우저 버전: {browser_version}')
             print(f'현재 ChromeDriver 버전: {chromedriver_version}')
 
@@ -46,7 +45,7 @@ class CollectLinks :
 
             # json 파일 자동 생성
             self.browser_data = self.make_json_browser()
-
+            print('정상 작동')
             print('=' * 100)
 
             CollectLinks.initialized = True
@@ -172,7 +171,7 @@ class CollectLinks :
 
     # img src 링크
     def img_links(self, browser, topic, option='', limit=20) :
-        search_data = self.check_json_browser(browser)
+        search_data = CollectLinks.check_json_browser(browser)
 
         self.driver.get(search_data['search_url'].format(topic = topic, option = option))
         time.sleep(2)
