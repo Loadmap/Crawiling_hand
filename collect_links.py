@@ -181,8 +181,10 @@ class CollectLinks :
         next_button = self.driver.find_element(By.TAG_NAME, 'body')
 
         links = []
+        prev_len = 0
+        prev_len_cnt = 50
         cnt = 0
-        limit = 100 if limit == 0 else limit
+        limit = 1000 if limit == 0 else limit
 
         while len(links) < limit :
             t1 = time.time()
@@ -191,12 +193,21 @@ class CollectLinks :
                 imgs = self.driver.find_elements(By.XPATH, img_xpath)
                 t2 = time.time()
 
-                if len(imgs) > 0 or (t1 - t2 > 5) :
+                if len(imgs) > 0 :
+
+                    break
+
+                if t1 - t2 > 5 :
+                    print(f'해당 {img_xpath} 에서 이미지를 찾는데 실패')
+
                     break
 
             if not imgs :
                 print(f'이미지 찾기 실패 {imgs}')
+
                 continue
+
+
 
             retry_cnt = 3
 
@@ -210,6 +221,14 @@ class CollectLinks :
                         cnt += 1
 
                         print(f'{cnt}, {src}')
+
+                    if len(links) == prev_len:
+                        prev_len_cnt -= 1
+
+                    else :
+                        prev_len_cnt = 50
+
+                    prev_len = len(links)
 
                     break
 
@@ -229,6 +248,11 @@ class CollectLinks :
             if retry_cnt == 0 :
                 print(f'{cnt}번째 이미지 로드 실패 다음 이미지로 넘어감')
 
+            if prev_len_cnt <= 0 :
+                print('재시도 끝에 새로운 이미지를 찾을 수 없어 크롤링을 종료 합니다.')
+
+                break
+
             next_button.send_keys(Keys.RIGHT)
 
         print('=' * 100)
@@ -246,6 +270,6 @@ if __name__ == '__main__' :
     collect = CollectLinks()
     # print(collect.read_json_browser())
     # print(collect.check_json_browser('naver'))
-    collect.img_links(browser = 'naver', topic = topic, limit = 10)
+    collect.img_links(browser = 'naver', topic = topic, limit = 1000)
 
     collect.driver.quit()
