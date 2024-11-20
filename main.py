@@ -1,15 +1,15 @@
 import os
 import json
-import datetime
 import requests
 from collect_links import CollectLinks
+from datetime import datetime
 
 class Crawling :
 
-    def __init__(self, n_threads = 4, google = True, naver = True, no_gui = False, save_path = 'download', limit = 10) :
+    def __init__(self, n_threads = 4, crawl_google = True, crawl_naver = True, no_gui = False, save_path = 'download', limit = 10) :
         self.n_treads = n_threads
-        self.google = google
-        self.naver = naver
+        self.crawl_google = crawl_google
+        self.crawl_naver = crawl_naver
         self.no_gui = no_gui
         self.limit = limit = 1000 if limit == 0 else limit
         self.collect_links = CollectLinks
@@ -61,34 +61,58 @@ class Crawling :
 
             return 'jpg'
 
-    def make_log(self, browser, limit) :
-        log_data = {}
+    def make_data(self, browser, topic) :
+        data = {}
         topics = self.make_and_read_topic()
 
-        self.make_dir('log')
+        self.make_dir('data')
 
-        for topic in topics:
-            link = self.collect_links().img_links(browser = browser, topic = topic, limit = limit)
-            log_data.setdefault(browser, []).append([topic, link])
 
-        try:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-            log_path = f'./log/{timestamp}.txt'
-            cnt = 0
+        link = self.collect_links().img_links(browser = browser, topic = topic, limit = self.limit)
+        data.setdefault(browser, []).append([topic, link])
 
-            while os.path.exists(log_path) :
-                cnt += 1
-                log_path = f'./log/{timestamp} ({cnt}).txt'
+        # try:
+        #     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+        #     data_path = f'./data/{timestamp}.txt'
+        #     cnt = 0
+        #
+        #     while os.path.exists(data_path) :
+        #         cnt += 1
+        #         data_path = f'./data/{timestamp} ({cnt}).txt'
+        #
+        #     with open(data_path, 'w', encoding='utf-8') as f :
+        #         json.dump(data, f, ensure_ascii = False, indent = 4)
+        #
+        # except Exception as e :
+        #     print(f'예상치 못한 오류 발생 : {e}')
+        #
+        #     return
 
-            with open(log_path, 'w', encoding='utf-8') as f :
-                json.dump(log_data, f, ensure_ascii = False, indent = 4)
+        return data
+
+
+    def download_from_browser(self, topic) :
+
+        try :
+
+            if self.crawl_google == True :
+                browser = 'google'
+                links = self.make_data(browser, topic)
+
+            elif self.crawl_naver == True :
+                browser = 'naver'
+                links = self.make_data(browser, topic)
+
+            else :
+                print('해당 브라우저 데이터를 찾을 수 없음')
+                links = []
 
         except Exception as e :
+            print(f'예상치 못한 오류 발생 : {e}')
 
             return
 
-        return log_data
-
 
 if __name__ == '__main__' :
-    crawling = Crawling(n_threads = 4, google = True, naver = True, no_gui = False, limit = 5)
+    crawling = Crawling(n_threads = 4, crawl_google = True, crawl_naver = True, no_gui = False, limit = 5)
+    crawling.download_from_browser()

@@ -20,7 +20,7 @@ class CollectLinks :
 
         # Chrome 웹드라이버 설정
         chrome_options = Options()
-        chrome_options.add_argument('--no-sandbox')  # To maintain user cookies
+        chrome_options.add_argument('--no-sandbox') 
         chrome_options.add_argument('--disable-dev-shm-usage')
 
         if no_gui :
@@ -72,11 +72,12 @@ class CollectLinks :
 
             with open('browser.json', 'w', encoding = 'utf-8') as f :
                 json.dump(data, f, indent = 4)
-                print(f'데이터가 {save_path} 경로에 json 형식으로 올바르게 저장되되었습니다.')
+                print(f'데이터가 {save_path} 경로에 올바르게 저장 되었습니다.')
 
         else:
             print('현재 경로에 파일 존재')
-
+    
+    # json 파일 읽기
     @staticmethod
     def read_json_browser():
 
@@ -85,7 +86,8 @@ class CollectLinks :
             keys = list(browser_data.keys())
 
         return browser_data, keys
-
+    
+    # json 파일 데이터 확인
     @staticmethod
     def check_json_browser(browser) :
 
@@ -108,7 +110,7 @@ class CollectLinks :
             return
 
         except json.JSONDecodeError :
-            print('파일 내용이 올바른 JSON 형식이 아닙니다. 파일을 확인하세요.')
+            print('파일 내용이 올바른 형식이 아닙니다. 파일을 확인하세요.')
 
             return
 
@@ -118,14 +120,13 @@ class CollectLinks :
             return
 
         except Exception as e :
-            print(f'예상 외의 에러 {e} 발생')
+            print(f'예상치 못한 에러 발생 : {e}')
 
             return
 
         return browser_data[browser]
 
-    # img click area
-
+    # img 범위 클릭
     def click_img_area(self, xpath) :
 
         try :
@@ -133,7 +134,7 @@ class CollectLinks :
             click_img.click()
 
         except Exception as e :
-            print(f'click_img_area 에러발생 {e}')
+            print(f'click_img_area 에러발생 : {e}')
             print(f'새로 고침 실행')
             self.driver.refresh()
             time.sleep(2)
@@ -142,12 +143,13 @@ class CollectLinks :
 
         return click_img
 
-    # topic_select
+    # 스크롤 위치
     def get_scroll(self) :
         pos = self.driver.execute_script("return window.pageYOffset;")
 
         return pos
 
+    # 스크롤 내리기
     def scroll_down(self) :
         last_pos = 0
         pause_cnt = 0
@@ -169,7 +171,7 @@ class CollectLinks :
             if pause_cnt >= max_pause_cnt :
                 break
 
-    # img src 링크
+    # img src 링크 수집
     def img_links(self, browser, topic, option='', limit=20) :
         search_data = CollectLinks.check_json_browser(browser)
 
@@ -207,8 +209,6 @@ class CollectLinks :
 
                 continue
 
-
-
             retry_cnt = 3
 
             while retry_cnt > 0 :
@@ -241,7 +241,7 @@ class CollectLinks :
                     retry_cnt -= 1
 
                 except Exception as e :
-                    print(f'네이버 크롤링 에러 발생 {e}')
+                    print(f'네이버 크롤링 에러 발생 : {e}')
 
                     break
 
